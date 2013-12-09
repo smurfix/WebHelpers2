@@ -1,0 +1,54 @@
+Ideas we're considering
++++++++++++++++++++++++
+
+# builder
+
+Docstrings in html subpackage.
+
+Fix xfail tests.
+
+Documentation
+
+format_attrs ->  attrs
+attrs arg -> kw or kwattrs
+
+boolean attrs attribute and void tags attribute
+
+All Unicode literals.
+
+
+# tags
+
+consolidate _set_input_attrs -> _make_input_tag
+
+ModelTags -> main tag class; functions shadow an instance
+
+borrow from pyramid_simpleform
+
+add space in checkbox label.
+
+label class arg in checkbox?
+
+Allow options to be list of strings; generate simple options without 'value'.
+
+Drop title?
+
+Add Link.
+
+Default for ul and ol?   (XXX What does this mean?)
+
+Can recast list helpers with generators?   (XXX What does this mean?)
+
+size callback for image()?   size(path) => (width, height) or (None, None).
+Method on builder. Boolean on method?
+
+# Mako lat/lon examples
+# Update README.txt
+# Change README to README.txt in MANIFEST.in
+
+
+Disfavoring
+===========
+
+javascript_link -> js? (conflict with js library)
+stylesheet_link -> css? (user can rename on import)
