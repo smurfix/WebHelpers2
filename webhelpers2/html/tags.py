@@ -22,6 +22,8 @@ from webhelpers2.html import escape, HTML, literal, url_escape
 from webhelpers2.misc import NotGiven
 
 __all__ = [
+           # Lazy-rendering tags
+           "Link",
            # Form tags
            "form", "end_form", 
            "text", "textarea", "hidden", "file", "password", 
@@ -36,13 +38,133 @@ __all__ = [
            "ol", "ul", "image",
            # Head tags and document type
            "stylesheet_link", "javascript_link", "auto_discovery_link",
-           # Lazy-rendering tags
-           "Link",
            # Backward compatibility
            "BR",
            ]
 
 log = logging.getLogger(__name__)
+
+########## Lazy-rendering tags ##########
+
+class Link(object):
+    """A lazy-rendering hyperlink object.
+
+    Attributes:
+
+    * **label**: The text content. Can contain HTML markup or an image if you
+      use a literal or the other helpers.
+    * **url**: The URL target. Renders as the 'href' attribute.
+    * **condition**: If true (default), render an <a> tag. If false, render
+      only the text content.
+    * **attrs**: Dict of HTML attributes.
+
+    The 'condition' attribute is useful in cases like a menu where want the
+    curent page to show just as text rather than a link.
+    """
+
+    def __init__(self, label, url="", condition=True, **attrs):
+        """Constructor.
+        
+        The 'label' argument is required. If empty or ``None``, copy the URL to
+        the label. The URL defaults to ``""``.
+        """
+        self.label = label or url
+        self.url = url
+        self.condition = condition
+        self.attrs = attrs
+
+    def __html__(self):
+        if not self.condition:
+            return HTML(self.label)
+        return HTML.tag("a", self.label, href=self.url, **self.attrs)
+
+    __str__ = __html__
+
+
+########## Containers for select() options ##########
+
+class Option(object):
+    """An option for an HTML select.
+    
+    A simple container with two attributes, ``.value`` and ``.label``.
+    """
+    __slots__ = ("value", "label")
+
+
+    def __init__(self, value, label):
+        self.value = value
+        self.label = label
+
+    def __repr__(self):
+        return str((self.value, self.label))
+
+    def __eq__(self, other):
+        return ( isinstance(other, self.__class__) and
+            self.value == other.value and
+            self.label == other.label )
+            
+
+class OptGroup(object):
+    """A container for Options"""
+    __slots__ = ('options', 'label')
+    def __init__(self, label, options):
+        self.options = Options(options)
+        self.label = label
+    def __repr__(self):
+        classname = self.__class__.__name__
+        data = [x for x in self.options]
+        return "{}({}, {})".format(classname, data, repr(self.label))
+
+class Options(tuple):
+    """A tuple of ``Option`` objects for the ``select()`` helper.
+
+    ``select()`` calls this automatically so you don't have to.  However,
+    you may find it useful for organizing your code, and its methods can be
+    convenient.
+
+    This class has multiple jobs:
+
+    - Canonicalize the options given to ``select()`` into a consistent format.
+    - Avoid canonicalizing the same data multiple times.  It subclasses tuple
+      rather than a list to guarantee that nonconformant elements won't be 
+      added after canonicalization.
+    - Provide convenience methods to iterate the values and labels separately.
+    """
+    def __new__(class_, options):
+        text_type = six.text_type
+        opts = []
+        for opt in options:
+            if isinstance(opt, (Option, OptGroup)):
+                opts.append(opt)
+                continue
+            if isinstance(opt, (list, tuple)):
+                value, label = opt[:2]
+                if isinstance(value, (list, tuple)):  # It's an optgroup
+                    opts.append(OptGroup(label, value))
+                    continue
+            else:
+                value = label = opt
+            if not isinstance(value, text_type):
+                value = text_type(value)
+            if not isinstance(label, text_type):  # Preserves literal.
+                label = text_type(label)
+            opt = Option(value, label)
+            opts.append(opt)
+        return super(Options, class_).__new__(class_, opts)
+
+    def __repr__(self):
+        classname = self.__class__.__name__
+        data = [x for x in self]
+        return "{}({})".format(classname, data)
+
+    def values(self):
+        """Iterate the value element of each pair."""
+        return (x.value for x in self)
+
+    def labels(self):
+        """Iterate the label element of each pair."""
+        return (x.label for x in self)
+
 
 
 ########## Function-based form tag helpers ##########
@@ -565,91 +687,6 @@ class ModelTags(object):
             kw['id'] = self.id_format.format(name)
 
 
-########## Containers for select() options ##########
-
-class Option(object):
-    """An option for an HTML select.
-    
-    A simple container with two attributes, ``.value`` and ``.label``.
-    """
-    __slots__ = ("value", "label")
-
-
-    def __init__(self, value, label):
-        self.value = value
-        self.label = label
-
-    def __repr__(self):
-        return str((self.value, self.label))
-
-    def __eq__(self, other):
-        return ( isinstance(other, self.__class__) and
-            self.value == other.value and
-            self.label == other.label )
-            
-
-class OptGroup(object):
-    """A container for Options"""
-    __slots__ = ('options', 'label')
-    def __init__(self, label, options):
-        self.options = Options(options)
-        self.label = label
-    def __repr__(self):
-        classname = self.__class__.__name__
-        data = [x for x in self.options]
-        return "{}({}, {})".format(classname, data, repr(self.label))
-
-class Options(tuple):
-    """A tuple of ``Option`` objects for the ``select()`` helper.
-
-    ``select()`` calls this automatically so you don't have to.  However,
-    you may find it useful for organizing your code, and its methods can be
-    convenient.
-
-    This class has multiple jobs:
-
-    - Canonicalize the options given to ``select()`` into a consistent format.
-    - Avoid canonicalizing the same data multiple times.  It subclasses tuple
-      rather than a list to guarantee that nonconformant elements won't be 
-      added after canonicalization.
-    - Provide convenience methods to iterate the values and labels separately.
-    """
-    def __new__(class_, options):
-        text_type = six.text_type
-        opts = []
-        for opt in options:
-            if isinstance(opt, (Option, OptGroup)):
-                opts.append(opt)
-                continue
-            if isinstance(opt, (list, tuple)):
-                value, label = opt[:2]
-                if isinstance(value, (list, tuple)):  # It's an optgroup
-                    opts.append(OptGroup(label, value))
-                    continue
-            else:
-                value = label = opt
-            if not isinstance(value, text_type):
-                value = text_type(value)
-            if not isinstance(label, text_type):  # Preserves literal.
-                label = text_type(label)
-            opt = Option(value, label)
-            opts.append(opt)
-        return super(Options, class_).__new__(class_, opts)
-
-    def __repr__(self):
-        classname = self.__class__.__name__
-        data = [x for x in self]
-        return "{}({})".format(classname, data)
-
-    def values(self):
-        """Iterate the value element of each pair."""
-        return (x.value for x in self)
-
-    def labels(self):
-        """Iterate the label element of each pair."""
-        return (x.label for x in self)
-
-
 ########## Hyperlink tags ##########
 
 def link_to(label, url='', **attrs):
@@ -876,43 +913,6 @@ def auto_discovery_link(url, feed_type="rss", **attrs):
         feed_type = 'application/{}+xml'.format(feed_type.lower())
     attrs.setdefault("title", title)
     return HTML.tag("link", rel="alternate", type=feed_type, href=url, **attrs)
-
-
-########## Lazy-rendering tags ##########
-
-class Link(object):
-    """A lazy-rendering hyperlink object.
-
-    Attributes:
-
-    * **label**: The text content. Can contain HTML markup or an image if you
-      use a literal or the other helpers.
-    * **url**: The URL target. Renders as the 'href' attribute.
-    * **condition**: If true (default), render an <a> tag. If false, render
-      only the text content.
-    * **attrs**: Dict of HTML attributes.
-
-    The 'condition' attribute is useful in cases like a menu where want the
-    curent page to show just as text rather than a link.
-    """
-
-    def __init__(self, label, url="", condition=True, **attrs):
-        """Constructor.
-        
-        The 'label' argument is required. If empty or ``None``, copy the URL to
-        the label. The URL defaults to ``""``.
-        """
-        self.label = label or url
-        self.url = url
-        self.condition = condition
-        self.attrs = attrs
-
-    def __html__(self):
-        if not self.condition:
-            return HTML(self.label)
-        return HTML.tag("a", self.label, href=self.url, **self.attrs)
-
-    __str__ = __html__
 
 
 ########## Backward compatibility ##########
