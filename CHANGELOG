@@ -1,6 +1,8 @@
 2.0b6 (XXXX-XX-XX)
 ------------------
 
+- Depend on and use 'reprutils'.
+
 - webhelpers.html._literal
 
   * Implementation of 'literal' moved to this private module.

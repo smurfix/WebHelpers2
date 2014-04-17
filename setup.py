@@ -25,6 +25,7 @@ class PyTest(TestCommand):
 
 install_requires=[
     "MarkupSafe>=0.9.2",
+    "reprutils",
     "six>=1.4.0",
     ],
 
