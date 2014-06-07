@@ -9,3 +9,4 @@ docs/_themes
 env*
 venv
 .tox
+/.pybuild/
