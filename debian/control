@@ -2,12 +2,23 @@ Source: webhelpers2
 Maintainer: Mike Orr, Ben Bangert, Phil Jenvey <sluggoster@gmail.com, ben@groovie.org, pjenvey@groovie.org>
 Section: python
 Priority: optional
-Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.6.6-3), debhelper (>= 7)
+Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.6.6-3), python3-all, debhelper (>= 8), python3-setuptools
 Standards-Version: 3.9.1
+X-Python-Version: >= 2.6
+X-Python3-Version: >= 3.2
 
 Package: python-webhelpers2
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}
+Description: WebHelpers2
+ .
+ WebHelpers2 is the successor to the widely-used WebHelpers utilities.
+ It contains convenience functions to make HTML tags, process text, format numbers, do basic statistics, work with collections, and more.
+ .
+
+Package: python3-webhelpers2
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}
 Description: WebHelpers2
  .
  WebHelpers2 is the successor to the widely-used WebHelpers utilities.
